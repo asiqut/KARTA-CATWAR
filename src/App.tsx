@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 
 type Transition = {
   id: string
@@ -31,6 +31,8 @@ type Connector = {
 const GRID_COLS = 10
 const GRID_ROWS = 6
 const LOCATION_SIZE = 440
+const CANVAS_WIDTH = 5000
+const CANVAS_HEIGHT = 3500
 
 function makeTransitions(locationId: string): Transition[] {
   return Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => ({
@@ -41,8 +43,8 @@ function makeTransitions(locationId: string): Transition[] {
 }
 
 const initialLocations: Location[] = [
-  { id: 'loc-1', name: 'Локация 1', x: 180, y: 180, size: LOCATION_SIZE, transitions: makeTransitions('loc-1') },
-  { id: 'loc-2', name: 'Локация 2', x: 820, y: 300, size: LOCATION_SIZE, transitions: makeTransitions('loc-2') },
+  { id: 'loc-1', name: 'Локация 1', x: 600, y: 500, size: LOCATION_SIZE, transitions: makeTransitions('loc-1') },
+  { id: 'loc-2', name: 'Локация 2', x: 1500, y: 800, size: LOCATION_SIZE, transitions: makeTransitions('loc-2') },
 ]
 
 const initialConnectors: Connector[] = [
@@ -86,6 +88,8 @@ export function App() {
   const [locations, setLocations] = useState(initialLocations)
   const [connectors, setConnectors] = useState(initialConnectors)
   const [selected, setSelected] = useState<string | null>(null)
+  const [hoveredTransition, setHoveredTransition] = useState<ConnectorEndpoint | null>(null)
+  const [connectionStart, setConnectionStart] = useState<ConnectorEndpoint | null>(null)
   const [zoom, setZoom] = useState(1)
   const dragging = useRef<{ id: string; startX: number; startY: number; x: number; y: number } | null>(null)
 
@@ -98,8 +102,8 @@ export function App() {
       {
         id,
         name: `Локация ${current.length + 1}`,
-        x: 360 + current.length * 60,
-        y: 700 + current.length * 60,
+        x: 700 + current.length * 120,
+        y: 1500 + current.length * 120,
         size: LOCATION_SIZE,
         transitions: makeTransitions(id),
       },
@@ -107,7 +111,7 @@ export function App() {
     setSelected(id)
   }
 
-  function startDrag(event: React.PointerEvent<SVGGElement>, location: Location) {
+  function startDrag(event: ReactPointerEvent<SVGGElement>, location: Location) {
     if (mode !== 'editor') return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -120,7 +124,7 @@ export function App() {
     }
   }
 
-  function dragLocation(event: React.PointerEvent<SVGGElement>) {
+  function dragLocation(event: ReactPointerEvent<SVGGElement>) {
     const drag = dragging.current
     if (!drag) return
     const dx = (event.clientX - drag.startX) / zoom
@@ -134,10 +138,36 @@ export function App() {
     dragging.current = null
   }
 
+  function beginConnection(endpoint: ConnectorEndpoint, event: ReactPointerEvent) {
+    if (mode !== 'editor') return
+    event.stopPropagation()
+    setConnectionStart(endpoint)
+    setSelected(endpoint.locationId)
+  }
+
+  function finishConnection(endpoint: ConnectorEndpoint, event: ReactPointerEvent) {
+    if (!connectionStart || mode !== 'editor') return
+    event.stopPropagation()
+    if (connectionStart.locationId === endpoint.locationId && connectionStart.transitionId === endpoint.transitionId) return
+
+    setConnectors((current) => [
+      ...current,
+      {
+        id: `conn-${Date.now()}`,
+        from: connectionStart,
+        to: endpoint,
+        color: '#7b8494',
+        arrows: 'both',
+      },
+    ])
+    setConnectionStart(null)
+  }
+
   function deleteSelected() {
     if (!selected || mode !== 'editor') return
     setLocations((current) => current.filter((item) => item.id !== selected))
     setConnectors((current) => current.filter((item) => item.from.locationId !== selected && item.to.locationId !== selected))
+    setConnectionStart(null)
     setSelected(null)
   }
 
@@ -163,12 +193,12 @@ export function App() {
       </aside>
 
       <main className="canvas-shell">
-        <div className="canvas" onClick={() => setSelected(null)}>
+        <div className="canvas" onClick={() => { setSelected(null); setConnectionStart(null) }}>
           <svg
             className="map"
-            width="2200"
-            height="1400"
-            viewBox="0 0 2200 1400"
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
             style={{ transform: `scale(${zoom})` }}
           >
             <defs>
@@ -182,7 +212,7 @@ export function App() {
                 <path d="M0,0 L9,4.5 L0,9 Z" fill="context-stroke" />
               </marker>
             </defs>
-            <rect width="2200" height="1400" fill="url(#canvas-grid)" />
+            <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#canvas-grid)" />
 
             {connectors.map((connector) => {
               const fromLocation = locationMap.get(connector.from.locationId)
@@ -214,6 +244,18 @@ export function App() {
               )
             })}
 
+            {connectionStart && hoveredTransition && (() => {
+              const fromLocation = locationMap.get(connectionStart.locationId)
+              const toLocation = locationMap.get(hoveredTransition.locationId)
+              if (!fromLocation || !toLocation) return null
+              const fromTransition = fromLocation.transitions.find((item) => item.id === connectionStart.transitionId)
+              const toTransition = toLocation.transitions.find((item) => item.id === hoveredTransition.transitionId)
+              if (!fromTransition || !toTransition) return null
+              const from = transitionCenter(fromLocation, fromTransition)
+              const to = transitionCenter(toLocation, toTransition)
+              return <path className="connection-preview" d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`} />
+            })()}
+
             {locations.map((location) => (
               <g
                 key={location.id}
@@ -232,14 +274,36 @@ export function App() {
                   {location.transitions.map((transition) => {
                     const cellWidth = location.size / GRID_COLS
                     const cellHeight = location.size / GRID_ROWS
+                    const endpoint = { locationId: location.id, transitionId: transition.id }
+                    const isHovered = hoveredTransition?.locationId === location.id && hoveredTransition.transitionId === transition.id
+                    const isStart = connectionStart?.locationId === location.id && connectionStart.transitionId === transition.id
+                    const cx = transition.col * cellWidth + cellWidth / 2
+                    const cy = transition.row * cellHeight + cellHeight / 2
+
                     return (
-                      <rect
+                      <g
                         key={transition.id}
-                        x={transition.col * cellWidth}
-                        y={transition.row * cellHeight}
-                        width={cellWidth}
-                        height={cellHeight}
-                      />
+                        className={`transition-cell ${isHovered ? 'hovered' : ''} ${isStart ? 'connection-start' : ''}`}
+                        onPointerEnter={() => setHoveredTransition(endpoint)}
+                        onPointerLeave={() => setHoveredTransition(null)}
+                        onPointerDown={(event) => {
+                          event.stopPropagation()
+                          if (connectionStart) finishConnection(endpoint, event)
+                        }}
+                      >
+                        <rect
+                          x={transition.col * cellWidth}
+                          y={transition.row * cellHeight}
+                          width={cellWidth}
+                          height={cellHeight}
+                        />
+                        {isHovered && mode === 'editor' && !connectionStart && (
+                          <g className="transition-connect-handle" onPointerDown={(event) => beginConnection(endpoint, event)}>
+                            <circle cx={cx + cellWidth / 2 - 8} cy={cy} r="13" />
+                            <path d={`M ${cx + cellWidth / 2 - 13} ${cy} L ${cx + cellWidth / 2 - 3} ${cy} M ${cx + cellWidth / 2 - 7} ${cy - 4} L ${cx + cellWidth / 2 - 3} ${cy} L ${cx + cellWidth / 2 - 7} ${cy + 4}`} />
+                          </g>
+                        )}
+                      </g>
                     )
                   })}
                 </g>
@@ -258,7 +322,7 @@ export function App() {
             value={locationMap.get(selected)?.name ?? ''}
             onChange={(event) => setLocations((current) => current.map((item) => item.id === selected ? { ...item, name: event.target.value } : item))}
           />
-          <div className="inspector-note">Переходы находятся внутри самой локации. Соединения привязываются к конкретным ячейкам переходов.</div>
+          <div className="inspector-note">Наведите на ячейку перехода — справа появится точка соединения. Нажмите её, затем выберите другую ячейку.</div>
         </section>
       )}
     </div>
