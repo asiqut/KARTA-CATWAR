@@ -44,8 +44,7 @@ button { color: inherit; border: 0; cursor: pointer; }
 .location-frame { fill: none; stroke: #697386; stroke-width: 1.5; pointer-events: none; }
 .location.selected .location-bg { stroke: #9ba7ba; stroke-width: 3; }
 .location-title { fill: #e9edf3; font-size: 16px; font-weight: 650; pointer-events: none; }
-.transition-grid rect { fill: #191d24; stroke: #3b424d; stroke-width: 1; }
-.anchor { fill: #8994a5; stroke: #171a20; stroke-width: 3; }
+.transition-grid rect { fill: transparent; stroke: #3b424d; stroke-width: 1; }
 
 .inspector {
   position: fixed; z-index: 11; top: 70px; right: 14px; width: 260px;
