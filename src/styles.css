@@ -24,15 +24,16 @@ button { color: inherit; border: 0; cursor: pointer; }
 .location-bg { fill: #252a33; stroke: #39414e; stroke-width: 2; }
 .location-frame { fill: none; stroke: #697386; stroke-width: 1.5; pointer-events: none; }
 .location.selected .location-bg { stroke: #9ba7ba; stroke-width: 3; }
-.location-title { fill: #e9edf3; font-size: 16px; font-weight: 650; cursor: grab; pointer-events: all; user-select: none; }
-.location-title:active { cursor: grabbing; }
+.location-title-hitbox { fill: transparent; cursor: grab; pointer-events: all; }
+.location-title-hitbox:active { cursor: grabbing; }
+.location-title { fill: #f0f2f6; font-weight: 650; user-select: none; }
 .transition-grid rect { fill: transparent; stroke: #3b424d; stroke-width: 1; }
 .transition-cell { cursor: default; }
-.transition-cell.hovered > rect { fill: #ffffff14; stroke: #8d98aa; stroke-width: 1.5; }
+.transition-cell.hovered > rect { fill: #ffffff2b; stroke: #b9c3d3; stroke-width: 2; }
+.transition-cell.connection-start > rect { fill: #ffffff35; stroke: #d8e0ec; stroke-width: 2.5; }
 .transition-connect-handle { cursor: crosshair; }
-.transition-connect-handle circle { fill: #e8edf5; stroke: #303743; stroke-width: 2; }
+.transition-connect-handle circle { fill: #f4f6fa; stroke: #303743; stroke-width: 2; }
 .transition-connect-handle path { fill: none; stroke: #303743; stroke-width: 2; stroke-linecap: round; }
-.transition-cell.connection-start > rect { fill: #ffffff20; stroke: #c3ccda; stroke-width: 2; }
 .connection-preview { fill: none; stroke: #9ba7ba; stroke-width: 3; stroke-dasharray: 8 7; pointer-events: none; }
 .connectors-layer { pointer-events: none; }
 .inspector { position: fixed; z-index: 11; top: 70px; right: 14px; width: 260px; padding: 14px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
