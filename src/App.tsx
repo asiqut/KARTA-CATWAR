@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 
 type Transition = { id: string; row: number; col: number }
 type Location = { id: string; name: string; x: number; y: number; size: number; transitions: Transition[] }
@@ -22,7 +22,7 @@ export function App() {
   const dragging = useRef<{ id: string; startX: number; startY: number; x: number; y: number; size: number } | null>(null)
   const locationMap = useMemo(() => new Map(locations.map((item) => [item.id, item])), [locations])
   function addLocation() { const id = `loc-${Date.now()}`; setLocations((current) => [...current, { id, name: `Локация ${current.length + 1}`, x: 900 + current.length * 100, y: 1100 + current.length * 100, size: LOCATION_SIZE, transitions: makeTransitions(id) }]); setSelected(id) }
-  function selectLocation(location: Location, event?: ReactPointerEvent<SVGElement>) { event?.stopPropagation(); setSelected(location.id) }
+  function selectLocation(location: Location, event?: ReactMouseEvent<SVGElement>) { event?.stopPropagation(); setSelected(location.id) }
   function startDrag(event: ReactPointerEvent<SVGElement>, location: Location) { if (mode !== 'editor' || connectionStart) return; event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); dragging.current = { id: location.id, startX: event.clientX, startY: event.clientY, x: location.x, y: location.y, size: location.size }; setSelected(location.id) }
   function dragLocation(event: ReactPointerEvent<SVGElement>) { const drag = dragging.current; if (!drag) return; const dx = (event.clientX - drag.startX) / (zoom * CONTENT_SCALE), dy = (event.clientY - drag.startY) / (zoom * CONTENT_SCALE); const x = Math.max(LOCATION_SAFE_MARGIN, Math.min(CANVAS_WIDTH - drag.size - LOCATION_SAFE_MARGIN, drag.x + dx)), y = Math.max(LOCATION_SAFE_MARGIN, Math.min(CANVAS_HEIGHT - drag.size - LOCATION_SAFE_MARGIN, drag.y + dy)); setLocations((current) => current.map((item) => item.id === drag.id ? { ...item, x, y } : item)) }
   function stopDrag(event?: ReactPointerEvent<SVGElement>) { const drag = dragging.current; if (drag && event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); dragging.current = null }
