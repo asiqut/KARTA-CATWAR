@@ -36,7 +36,7 @@ button { color: inherit; border: 0; cursor: pointer; }
 .toolbar button { width: 36px; height: 36px; font-size: 18px; }
 
 .canvas-shell { width: 100%; height: 100%; padding-top: 54px; overflow: auto; }
-.canvas { min-width: 2200px; min-height: 1400px; background: #11141a; }
+.canvas { width: 5000px; height: 3500px; background: #11141a; }
 .map { display: block; transform-origin: 0 0; }
 .location { cursor: grab; }
 .location:active { cursor: grabbing; }
@@ -45,6 +45,13 @@ button { color: inherit; border: 0; cursor: pointer; }
 .location.selected .location-bg { stroke: #9ba7ba; stroke-width: 3; }
 .location-title { fill: #e9edf3; font-size: 16px; font-weight: 650; pointer-events: none; }
 .transition-grid rect { fill: transparent; stroke: #3b424d; stroke-width: 1; }
+.transition-cell { cursor: default; }
+.transition-cell.hovered > rect { fill: #ffffff08; stroke: #697386; }
+.transition-connect-handle { cursor: crosshair; }
+.transition-connect-handle circle { fill: #e8edf5; stroke: #303743; stroke-width: 2; }
+.transition-connect-handle path { fill: none; stroke: #303743; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.transition-cell.connection-start > rect { fill: #ffffff0d; stroke: #aeb8c8; stroke-width: 2; }
+.connection-preview { fill: none; stroke: #9ba7ba; stroke-width: 3; stroke-dasharray: 8 7; pointer-events: none; }
 
 .inspector {
   position: fixed; z-index: 11; top: 70px; right: 14px; width: 260px;
