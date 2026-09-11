@@ -15,6 +15,7 @@ button { color: inherit; border: 0; cursor: pointer; }
 .top-actions button:hover, .toolbar button:hover { background: #282d36; color: #fff; }
 .toolbar { position: fixed; z-index: 10; top: 70px; left: 14px; display: flex; flex-direction: column; gap: 6px; padding: 7px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
 .toolbar button { width: 36px; height: 36px; font-size: 18px; }
+.toolbar button.active-tool { background: #303641; color: #fff; }
 .canvas-shell { width: 100%; height: 100%; padding-top: 54px; overflow: auto; scrollbar-width: none; }
 .canvas-shell::-webkit-scrollbar { display: none; }
 .canvas { width: 5000px; height: 3500px; background: #11141a; }
@@ -30,14 +31,20 @@ button { color: inherit; border: 0; cursor: pointer; }
 .location-title { fill: #f0f3f7; font-size: 18px; font-weight: 700; user-select: none; }
 .transition-grid rect { fill: transparent; stroke: #3b424d; stroke-width: 1; }
 .transition-cell { cursor: default; }
+.transition-cell:hover { cursor: crosshair; }
 .transition-connect-handle { cursor: crosshair; }
 .transition-connect-handle circle { fill: #e8edf5; stroke: #303743; stroke-width: 2; }
 .transition-connect-handle path { fill: none; stroke: #303743; stroke-width: 2; stroke-linecap: round; }
 .transition-cell.connection-start > rect { fill: #ffffff30; stroke: #e5ebf4; stroke-width: 2; }
 .connection-preview { fill: none; stroke: #9ba7ba; stroke-width: 3; stroke-dasharray: 8 7; pointer-events: none; }
 .connectors-layer { pointer-events: none; }
-.inspector { position: fixed; z-index: 11; top: 70px; right: 14px; width: 260px; padding: 14px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
+.inspector { position: fixed; z-index: 11; top: 70px; right: 14px; width: 280px; padding: 14px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
 .inspector-title { margin-bottom: 9px; font-size: 12px; color: #9da5b3; text-transform: uppercase; letter-spacing: .08em; }
-.inspector input { width: 100%; padding: 9px 10px; border: 1px solid #343b47; border-radius: 7px; outline: none; background: #0f1116; color: #fff; }
+.inspector input:not([type="file"]) { width: 100%; padding: 9px 10px; border: 1px solid #343b47; border-radius: 7px; outline: none; background: #0f1116; color: #fff; }
 .inspector input:focus { border-color: #68758a; }
+.inspector-field { margin-top: 14px; }
+.inspector-field label { display: block; margin-bottom: 7px; color: #9da5b3; font-size: 12px; }
+.inspector-field input[type="file"] { width: 100%; color: #aeb5c0; font-size: 11px; }
+.remove-bg { margin-top: 8px; padding: 6px 9px; border-radius: 6px; background: #282d36; color: #d9dee7; font-size: 11px; }
+.remove-bg:hover { background: #343b47; }
 .inspector-note { margin-top: 12px; color: #7f8998; font-size: 11px; line-height: 1.45; }
