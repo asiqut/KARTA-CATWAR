@@ -33,7 +33,8 @@ button { color: inherit; border: 0; cursor: pointer; }
 .location-title-hitbox { fill: transparent; pointer-events: all; cursor: grab; }
 .location-title-hitbox:active { cursor: grabbing; }
 .location-title { fill: #f0f3f7; font-size: 18px; font-weight: 400; user-select: none; }
-.transition-grid rect { fill: transparent; stroke: rgba(255, 255, 255, .15); stroke-width: 2; filter: drop-shadow(2px 1px 1px rgba(0, 0, 0, .70)); }
+.transition-grid rect { fill: transparent; stroke: rgba(255, 255, 255, .15); stroke-width: 2; }
+.transition-grid { filter: drop-shadow(2.6px 1.5px 1px rgba(0, 0, 0, .70)); }
 .transition-cell { cursor: default; }
 .transition-cell:hover { cursor: crosshair; }
 .transition-connect-handle { cursor: crosshair; }
