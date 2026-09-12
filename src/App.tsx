@@ -40,7 +40,7 @@ export function App() {
   function setBackground(file: File | undefined) { if (!file || !selected) return; const reader = new FileReader(); reader.onload = () => setLocations((current) => current.map((item) => item.id === selected ? { ...item, background: String(reader.result) } : item)); reader.readAsDataURL(file) }
   function removeBackground() { if (!selected) return; setLocations((current) => current.map((item) => item.id === selected ? { ...item, background: null } : item)) }
 
-  const titleFontSize = 50 / CONTENT_SCALE
+  const titleFontSize = 50
   const titleHitboxMargin = 16
 
   return <div className="app">
