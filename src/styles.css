@@ -21,7 +21,7 @@ button { color: inherit; border: 0; cursor: pointer; }
 .toolbar button { width: 44px; height: 44px; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .toolbar button img, .transition-tools button img { width: 28px; height: 28px; display: block; object-fit: contain; filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
 .toolbar button.active-tool { background: #303641; color: #fff; border-radius: 10px; }
-.transition-tools { position: fixed; z-index: 10; top: 181px; left: 76px; display: flex; align-items: center; width: 52px; height: 44px; padding: 0 0 0 8px; background: #171a20; border: 1px solid #292e37; border-left: 0; border-radius: 0 10px 10px 0; box-shadow: 8px 8px 30px #0006; }
+.transition-tools { position: fixed; z-index: 10; top: 171px; left: 76px; display: flex; align-items: center; width: 52px; height: 64px; padding: 0 0 0 8px; background: #171a20; border: 1px solid #292e37; border-left: 0; border-radius: 0 10px 10px 0; box-shadow: 8px 8px 30px #0006; }
 .transition-tools button { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #303641; border: 0; }
 .transition-tools button:hover { background: #3a414d; }
 .transition-tools button.active-tool { background: #303641; color: #fff; }
