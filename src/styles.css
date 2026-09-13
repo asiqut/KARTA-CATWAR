@@ -49,6 +49,10 @@ button { color: inherit; border: 0; cursor: pointer; }
 .transition-cell.connection-start > rect { fill: #ffffff30; stroke: #e5ebf4; stroke-width: 2; }
 .connection-preview { fill: none; stroke: #ffffff; stroke-width: 4; stroke-dasharray: 8 7; pointer-events: none; }
 .connectors-layer { pointer-events: none; }
+.connectors-layer > g { pointer-events: none; }
+.connectors-layer > g > path:first-child { pointer-events: stroke; }
+.connector-bend-handle { fill: #ffffff; stroke: #20242b; stroke-width: 3; cursor: move; pointer-events: all; }
+.connector-bend-handle:hover { fill: #dfe6ef; stroke: #000; stroke-width: 3; }
 .inspector { position: fixed; z-index: 11; top: 70px; right: 14px; width: 280px; padding: 14px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
 .inspector-title { margin-bottom: 9px; font-size: 12px; color: #9da5b3; text-transform: uppercase; letter-spacing: .08em; }
 .inspector input:not([type="file"]) { width: 100%; padding: 9px 10px; border: 1px solid #343b47; border-radius: 7px; outline: none; background: #0f1116; color: #fff; }
