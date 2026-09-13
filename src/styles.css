@@ -55,7 +55,8 @@ button { color: inherit; border: 0; cursor: pointer; }
 .connector-bend-handle:hover { fill: #dfe6ef; stroke: #000; stroke-width: 3; }
 .connector-mid-handle { fill: #3b82f6; stroke: #ffffff; stroke-width: 2; cursor: move; pointer-events: all; opacity: 1; }
 .connector-mid-handle:hover { fill: #60a5fa; stroke: #ffffff; stroke-width: 2.5; }
-.connector-side-handle { display: none; }
+.connector-side-handle { fill: #3b82f6; stroke: #ffffff; stroke-width: 2; cursor: pointer; pointer-events: all; opacity: 1; }
+.connector-side-handle:hover, .connector-side-handle.active { fill: #60a5fa; stroke: #ffffff; stroke-width: 2.5; }
 .inspector { position: fixed; z-index: 11; top: 70px; right: 14px; width: 280px; padding: 14px; background: #171a20; border: 1px solid #292e37; border-radius: 10px; box-shadow: 0 8px 30px #0006; }
 .inspector-title { margin-bottom: 9px; font-size: 12px; color: #9da5b3; text-transform: uppercase; letter-spacing: .08em; }
 .inspector input:not([type="file"]) { width: 100%; padding: 9px 10px; border: 1px solid #343b47; border-radius: 7px; outline: none; background: #0f1116; color: #fff; }
