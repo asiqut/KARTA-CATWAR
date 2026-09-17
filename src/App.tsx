@@ -7,7 +7,7 @@ type Endpoint = { locationId:string; transitionId:string }
 type Side = 'left'|'right'|'top'|'bottom'
 type Connector = { id:string; from:Endpoint; to:Endpoint; color:string; arrows:'none'|'start'|'end'|'both'; oneWay?:boolean; bends?:Point[]; fromSide?:Side; toSide?:Side }
 
-const COLS=10, ROWS=6, SIZE=440, CW=5000, CH=3500, SCALE=.55, SNAP=32
+const COLS=10, ROWS=6, SIZE=440, CW=5000, CH=3500, SCALE=.55, SNAP=32, MAGNET=64
 const makeTransitions=(id:string):Transition[]=>Array.from({length:ROWS*COLS},(_,i)=>({id:`${id}-t-${i}`,row:Math.floor(i/COLS),col:i%COLS}))
 const initialLocations:Location[]=[
  {id:'loc-1',name:'Локация 1',x:700,y:500,size:SIZE,background:null,transitions:makeTransitions('loc-1')},
@@ -26,6 +26,13 @@ function normalize(p:Point[]):Point[]{const d=p.reduce<Point[]>((a,v)=>!a.length
 function route(a:Point,b:Point,s:Side,bends?:Point[]){return normalize(bends?.length?[a,...bends,b]:defaults(a,b,s))}
 function path(p:Point[]){return p.map((v,i)=>`${i?'L':'M'} ${v.x} ${v.y}`).join(' ')}
 function handle(l:Location,t:Transition|undefined,s:Side):Point{if(!t)return{x:l.x+l.size/2,y:l.y+l.size/2};return edge(l,t,s)}
+function nearestSide(l:Location,t:Transition,p:Point,fallback:Side):Side{
+ const c=center(l,t),w=l.size/COLS,h=l.size/ROWS
+ const candidates:[Side,Point][]=[['left',{x:c.x-w/2,y:c.y}],['right',{x:c.x+w/2,y:c.y}],['top',{x:c.x,y:c.y-h/2}],['bottom',{x:c.x,y:c.y+h/2}]]
+ let best=fallback,bestDistance=Infinity
+ for(const [side,point] of candidates){const d=Math.hypot(p.x-point.x,p.y-point.y);if(d<bestDistance){bestDistance=d;best=side}}
+ return bestDistance<=MAGNET?best:fallback
+}
 
 export function App(){
  const [mode,setMode]=useState<'viewer'|'editor'>('editor'),[locations,setLocations]=useState(initialLocations),[connectors,setConnectors]=useState(initialConnectors)
@@ -37,7 +44,7 @@ export function App(){
  const orange=useMemo(()=>new Set(connectors.filter(c=>c.oneWay).map(c=>`${c.from.locationId}:${c.from.transitionId}`)),[connectors])
  function addLocation(){const id=`loc-${Date.now()}`;setLocations(v=>[...v,{id,name:`Локация ${v.length+1}`,x:900+v.length*100,y:1100+v.length*100,size:SIZE,background:null,transitions:makeTransitions(id)}]);setSelected(id)}
  function startDrag(e:ReactPointerEvent<SVGElement>,l:Location,allowConnection=false){if(mode!=='editor'||(!allowConnection&&connectionMode)||pan)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={id:l.id,sx:e.clientX,sy:e.clientY,x:l.x,y:l.y,size:l.size};setSelected(l.id)}
- function moveLocation(e:ReactPointerEvent<SVGElement>){if(!drag.current)return;const d=drag.current;let x=d.x+(e.clientX-d.sx)/(zoom*SCALE),y=d.y+(e.clientY-d.sy)/(zoom*SCALE);if(snap){x=Math.round(x/SNAP)*SNAP;y=Math.round(y/SNAP)*SNAP}setLocations(v=>v.map(l=>l.id===d.id?{...l,x:Math.max(34,Math.min(CW-d.size-34,x)),y:Math.max(34,Math.min(CH-d.size-34,y))}:l))}
+ function moveLocation(e:ReactPointerEvent<SVGElement>){if(!drag.current)return;const d=drag.current;let x=d.x+(e.clientX-d.sx)/(zoom*SCALE),y=d.y+(e.clientY-d.sy)/(zoom*SCALE);if(snap){x=Math.round(x/SNAP)*SNAP;y=Math.round(y/SNAP)*SNAP}const nx=Math.max(34,Math.min(CW-d.size-34,x)),ny=Math.max(34,Math.min(CH-d.size-34,y));setLocations(v=>v.map(l=>l.id===d.id?{...l,x:nx,y:ny}:l));setConnectors(v=>v.map(c=>c.from.locationId===d.id||c.to.locationId===d.id?{...c,bends:undefined}:c))}
  function stopDrag(e?:ReactPointerEvent<SVGElement>){if(drag.current&&e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);drag.current=null}
  function beginPan(e:ReactPointerEvent<HTMLElement>){if(!pan||e.button!==0)return;const s=shellRef.current;if(!s)return;e.preventDefault();panDrag.current={sx:e.clientX,sy:e.clientY,l:s.scrollLeft,t:s.scrollTop};s.setPointerCapture(e.pointerId)}
  function movePan(e:ReactPointerEvent<HTMLElement>){const d=panDrag.current,s=shellRef.current;if(!d||!s)return;s.scrollLeft=d.l-(e.clientX-d.sx);s.scrollTop=d.t-(e.clientY-d.sy)}
@@ -60,7 +67,7 @@ export function App(){
  }
  function stopMid(e?:ReactPointerEvent<SVGCircleElement>){if(e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);midDrag.current=null}
  function beginEnd(e:ReactPointerEvent<SVGCircleElement>,id:string,which:'from'|'to'){if(mode!=='editor'||connectionMode||pan||deleteMode)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);endDrag.current={id,which};setSelectedConnector(id)}
- function dragEnd(e:ReactPointerEvent<SVGCircleElement>){const d=endDrag.current;if(!d)return;const c=connectors.find(v=>v.id===d.id),g=c&&geometry(c);if(!c||!g)return;const l=d.which==='from'?g.fl:g.tl,t=d.which==='from'?g.ft:g.tt;if(!t)return;const p=svgPoint(e),cc=center(l,t),dx=p.x-cc.x,dy=p.y-cc.y,s:Side=Math.abs(dx)>=Math.abs(dy)?(dx>=0?'right':'left'):(dy>=0?'bottom':'top');setConnectors(v=>v.map(x=>x.id===d.id?{...x,[d.which==='from'?'fromSide':'toSide']:s,bends:undefined}:x))}
+ function dragEnd(e:ReactPointerEvent<SVGCircleElement>){const d=endDrag.current;if(!d)return;const c=connectors.find(v=>v.id===d.id),g=c&&geometry(c);if(!c||!g)return;const l=d.which==='from'?g.fl:g.tl,t=d.which==='from'?g.ft:g.tt;if(!t)return;const p=svgPoint(e),fallback=d.which==='from'?(c.fromSide??g.fs):(c.toSide??g.ts),s=nearestSide(l,t,p,fallback);if(s===fallback)return;setConnectors(v=>v.map(x=>x.id===d.id?{...x,[d.which==='from'?'fromSide':'toSide']:s,bends:undefined}:x))}
  function stopEnd(e?:ReactPointerEvent<SVGCircleElement>){if(e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);endDrag.current=null}
  function setBackground(file:File|undefined){if(!file||!selected)return;const r=new FileReader();r.onload=()=>setLocations(v=>v.map(l=>l.id===selected?{...l,background:String(r.result)}:l));r.readAsDataURL(file)}
  function removeBackground(){if(selected)setLocations(v=>v.map(l=>l.id===selected?{...l,background:null}:l))}
