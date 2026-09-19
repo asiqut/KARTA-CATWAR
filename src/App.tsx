@@ -13,7 +13,7 @@ const initialLocations:Location[]=[
  {id:'loc-1',name:'Локация 1',x:700,y:500,size:SIZE,background:null,transitions:makeTransitions('loc-1')},
  {id:'loc-2',name:'Локация 2',x:1450,y:750,size:SIZE,background:null,transitions:makeTransitions('loc-2')}
 ]
-const initialConnectors:Connector[]=[{id:'conn-1',from:{locationId:'loc-1',transitionId:'loc-1-t-25'},to:{locationId:'loc-2',transitionId:'loc-2-t-34'},color:'#fff',arrows:'none'}]
+const initialConnectors:Connector[]=[{id:'conn-1',from:{locationId:'loc-1',transitionId:'loc-1-t-25'},to:{locationId:'loc-2',transitionId:'loc-2-t-34'},color:'#fff',arrows:'none',fromSide:'right',toSide:'left'}]
 
 function center(l:Location,t:Transition):Point{const w=l.size/COLS,h=l.size/ROWS;return{x:l.x+t.col*w+w/2,y:l.y+t.row*h+h/2}}
 function edge(l:Location,t:Transition,s:Side):Point{const c=center(l,t),w=l.size/COLS,h=l.size/ROWS;return s==='left'?{x:c.x-w/2,y:c.y}:s==='right'?{x:c.x+w/2,y:c.y}:s==='top'?{x:c.x,y:c.y-h/2}:{x:c.x,y:c.y+h/2}}
@@ -23,7 +23,17 @@ function boundary(l:Location,p:Point):Point{const L=l.x,R=l.x+l.size,T=l.y,B=l.y
 function defaults(a:Point,b:Point,s:Side):Point[]{if(s==='left'||s==='right'){const x=a.x+(b.x-a.x)/2;return[a,{x,y:a.y},{x,y:b.y},b]}const y=a.y+(b.y-a.y)/2;return[a,{x:a.x,y},{x:b.x,y},b]}
 function same(a:Point,b:Point,t=5){return Math.hypot(a.x-b.x,a.y-b.y)<=t}
 function normalize(p:Point[]):Point[]{const d=p.reduce<Point[]>((a,v)=>!a.length||!same(a[a.length-1],v)?[...a,v]:a,[]);const r:Point[]=[];d.forEach((v,i)=>{if(i>0&&i<d.length-1){const a=d[i-1],b=d[i+1],cross=Math.abs((v.x-a.x)*(b.y-a.y)-(v.y-a.y)*(b.x-a.x));if(cross<8*Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))&&v.x>=Math.min(a.x,b.x)-8&&v.x<=Math.max(a.x,b.x)+8&&v.y>=Math.min(a.y,b.y)-8&&v.y<=Math.max(a.y,b.y)+8)return}r.push(v)});return r}
-function route(a:Point,b:Point,s:Side,bends?:Point[]){return normalize(bends?.length?[a,...bends,b]:defaults(a,b,s))}
+function route(a:Point,b:Point,s:Side,bends?:Point[]){
+ const raw=bends?.length?[a,...bends,b]:defaults(a,b,s)
+ if(raw.length<2)return raw
+ const out:Point[]=[raw[0]]
+ for(let i=1;i<raw.length;i++){
+  const prev=out[out.length-1],cur=raw[i]
+  if(Math.abs(cur.x-prev.x)<0.5||Math.abs(cur.y-prev.y)<0.5){out.push(cur);continue}
+  out.push({x:cur.x,y:prev.y});out.push(cur)
+ }
+ return normalize(out)
+}
 function path(p:Point[]){return p.map((v,i)=>`${i?'L':'M'} ${v.x} ${v.y}`).join(' ')}
 function handle(l:Location,t:Transition|undefined,s:Side):Point{if(!t)return{x:l.x+l.size/2,y:l.y+l.size/2};return edge(l,t,s)}
 function nearestSide(l:Location,t:Transition,p:Point,fallback:Side):Side{
@@ -45,7 +55,15 @@ export function App(){
  const orange=useMemo(()=>new Set(connectors.filter(c=>c.oneWay).map(c=>`${c.from.locationId}:${c.from.transitionId}`)),[connectors])
  function addLocation(){const id=`loc-${Date.now()}`;setLocations(v=>[...v,{id,name:`Локация ${v.length+1}`,x:900+v.length*100,y:1100+v.length*100,size:SIZE,background:null,transitions:makeTransitions(id)}]);setSelected(id)}
  function startDrag(e:ReactPointerEvent<SVGElement>,l:Location,allowConnection=false){if(mode!=='editor'||(!allowConnection&&connectionMode)||pan)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={id:l.id,sx:e.clientX,sy:e.clientY,x:l.x,y:l.y,size:l.size};setSelected(l.id)}
- function moveLocation(e:ReactPointerEvent<SVGElement>){if(!drag.current)return;const d=drag.current;let x=d.x+(e.clientX-d.sx)/(zoom*SCALE),y=d.y+(e.clientY-d.sy)/(zoom*SCALE);if(snap){x=Math.round(x/SNAP)*SNAP;y=Math.round(y/SNAP)*SNAP}const nx=Math.max(34,Math.min(CW-d.size-34,x)),ny=Math.max(34,Math.min(CH-d.size-34,y));setLocations(v=>v.map(l=>l.id===d.id?{...l,x:nx,y:ny}:l));setConnectors(v=>v.map(c=>c.from.locationId===d.id||c.to.locationId===d.id?{...c,bends:undefined}:c))}
+ function moveLocation(e:ReactPointerEvent<SVGElement>){if(!drag.current)return;const d=drag.current;let x=d.x+(e.clientX-d.sx)/(zoom*SCALE),y=d.y+(e.clientY-d.sy)/(zoom*SCALE);if(snap){x=Math.round(x/SNAP)*SNAP;y=Math.round(y/SNAP)*SNAP}const nx=Math.max(34,Math.min(CW-d.size-34,x)),ny=Math.max(34,Math.min(CH-d.size-34,y));setLocations(v=>v.map(l=>l.id===d.id?{...l,x:nx,y:ny}:l));setConnectors(v=>v.map(c=>{
+  if(c.from.locationId!==d.id&&c.to.locationId!==d.id)return c
+  const fl=map.get(c.from.locationId),tl=map.get(c.to.locationId)
+  const ft=fl?.transitions.find(t=>t.id===c.from.transitionId),tt=tl?.transitions.find(t=>t.id===c.to.transitionId)
+  if(!fl||!tl||!ft)return {...c,bends:undefined}
+  const fs=c.fromSide??sideFor(fl,ft,c.oneWay?{x:tl.x+tl.size/2,y:tl.y+tl.size/2}:tt?center(tl,tt):{x:tl.x+tl.size/2,y:tl.y+tl.size/2},relation(fl,tl))
+  const ts=c.toSide??(tt?sideFor(tl,tt,center(fl,ft),relation(tl,fl)):undefined)
+  return {...c,fromSide:fs,toSide:ts,bends:undefined}
+}))}
  function stopDrag(e?:ReactPointerEvent<SVGElement>){if(drag.current&&e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);drag.current=null}
  function beginPan(e:ReactPointerEvent<HTMLElement>){if(!pan||e.button!==0)return;const s=shellRef.current;if(!s)return;e.preventDefault();panDrag.current={sx:e.clientX,sy:e.clientY,l:s.scrollLeft,t:s.scrollTop};s.setPointerCapture(e.pointerId)}
  function movePan(e:ReactPointerEvent<HTMLElement>){const d=panDrag.current,s=shellRef.current;if(!d||!s)return;s.scrollLeft=d.l-(e.clientX-d.sx);s.scrollTop=d.t-(e.clientY-d.sy)}
@@ -53,8 +71,8 @@ export function App(){
  function toggleConnection(){setConnectionMode(v=>{const n=!v;if(!n){setStart(null);setDeleteMode(false);setOneWay(false)}return n})}
  function beginConnection(ep:Endpoint,e:ReactPointerEvent){if(!connectionMode||deleteMode||oneWay||mode!=='editor')return;e.stopPropagation();setStart(ep);setSelected(ep.locationId)}
  function beginOne(ep:Endpoint,e:ReactPointerEvent){if(!connectionMode||deleteMode||!oneWay||start)return;e.stopPropagation();setStart(ep);setSelected(ep.locationId)}
- function finishConnection(ep:Endpoint,e:ReactPointerEvent){if(!start||!connectionMode||deleteMode||oneWay)return;e.stopPropagation();if(start.locationId===ep.locationId&&start.transitionId===ep.transitionId)return;setConnectors(v=>[...v,{id:`conn-${Date.now()}`,from:start,to:ep,color:'#fff',arrows:'none'}]);setStart(null)}
- function finishOne(l:Location,e:ReactPointerEvent<SVGElement>){if(!start||!connectionMode||!oneWay||deleteMode||start.locationId===l.id)return;e.stopPropagation();setConnectors(v=>[...v,{id:`conn-${Date.now()}`,from:start,to:{locationId:l.id,transitionId:'__location__'},color:'#FF7000',arrows:'none',oneWay:true}]);setStart(null);setHoverLoc(null)}
+ function finishConnection(ep:Endpoint,e:ReactPointerEvent){if(!start||!connectionMode||deleteMode||oneWay)return;e.stopPropagation();if(start.locationId===ep.locationId&&start.transitionId===ep.transitionId)return;const fl=map.get(start.locationId),tl=map.get(ep.locationId);const ft=fl?.transitions.find(t=>t.id===start.transitionId),tt=tl?.transitions.find(t=>t.id===ep.transitionId);if(!fl||!tl||!ft||!tt)return;const fs=sideFor(fl,ft,center(tl,tt),relation(fl,tl)),ts=sideFor(tl,tt,center(fl,ft),relation(tl,fl));setConnectors(v=>[...v,{id:`conn-${Date.now()}`,from:start,to:ep,color:'#fff',arrows:'none',fromSide:fs,toSide:ts}]);setStart(null)}
+ function finishOne(l:Location,e:ReactPointerEvent<SVGElement>){if(!start||!connectionMode||!oneWay||deleteMode||start.locationId===l.id)return;e.stopPropagation();const fl=map.get(start.locationId);const ft=fl?.transitions.find(t=>t.id===start.transitionId);if(!fl||!ft)return;const fs=sideFor(fl,ft,{x:l.x+l.size/2,y:l.y+l.size/2},relation(fl,l));setConnectors(v=>[...v,{id:`conn-${Date.now()}`,from:start,to:{locationId:l.id,transitionId:'__location__'},color:'#FF7000',arrows:'none',oneWay:true,fromSide:fs}]);setStart(null);setHoverLoc(null)}
  function deleteTransition(ep:Endpoint,e:ReactPointerEvent){if(!deleteMode)return;e.stopPropagation();setConnectors(v=>v.filter(c=>!(c.from.locationId===ep.locationId&&c.from.transitionId===ep.transitionId)&&!(c.to.locationId===ep.locationId&&c.to.transitionId===ep.transitionId)));setStart(null)}
  function deleteSelected(){if(!selected)return;setLocations(v=>v.filter(l=>l.id!==selected));setConnectors(v=>v.filter(c=>c.from.locationId!==selected&&c.to.locationId!==selected));setSelected(null);setSelectedConnector(null)}
  function svgPoint(e:ReactPointerEvent<SVGElement>):Point{const svg=e.currentTarget.ownerSVGElement,r=svg?.getBoundingClientRect();return r?{x:(e.clientX-r.left)/(SCALE*zoom),y:(e.clientY-r.top)/(SCALE*zoom)}:{x:0,y:0}}
