@@ -38,7 +38,8 @@ export function App(){
  const [mode,setMode]=useState<'viewer'|'editor'>('editor'),[locations,setLocations]=useState(initialLocations),[connectors,setConnectors]=useState(initialConnectors)
  const [selected,setSelected]=useState<string|null>(null),[selectedConnector,setSelectedConnector]=useState<string|null>(null),[hovered,setHovered]=useState<Endpoint|null>(null),[hoverLoc,setHoverLoc]=useState<string|null>(null),[start,setStart]=useState<Endpoint|null>(null)
  const [zoom,setZoom]=useState(1),[snap,setSnap]=useState(true),[connectionMode,setConnectionMode]=useState(false),[deleteMode,setDeleteMode]=useState(false),[oneWay,setOneWay]=useState(false),[pan,setPan]=useState(false)
- const drag=useRef<any>(null),panDrag=useRef<any>(null),midDrag=useRef<any>(null),endDrag=useRef<any>(null),shellRef=useRef<HTMLElement|null>(null)
+ type MidDrag={id:string;index:number;points:Point[]}
+ const drag=useRef<any>(null),panDrag=useRef<any>(null),midDrag=useRef<MidDrag|null>(null),endDrag=useRef<any>(null),shellRef=useRef<HTMLElement|null>(null)
  const map=useMemo(()=>new Map(locations.map(l=>[l.id,l])),[locations])
  const connected=useMemo(()=>{const s=new Set<string>();connectors.forEach(c=>{s.add(`${c.from.locationId}:${c.from.transitionId}`);if(!c.oneWay)s.add(`${c.to.locationId}:${c.to.transitionId}`)});return s},[connectors])
  const orange=useMemo(()=>new Set(connectors.filter(c=>c.oneWay).map(c=>`${c.from.locationId}:${c.from.transitionId}`)),[connectors])
