@@ -24,7 +24,7 @@ function defaults(a:Point,b:Point,s:Side):Point[]{if(s==='left'||s==='right'){co
 function same(a:Point,b:Point,t=5){return Math.hypot(a.x-b.x,a.y-b.y)<=t}
 function normalize(p:Point[]):Point[]{const d=p.reduce<Point[]>((a,v)=>!a.length||!same(a[a.length-1],v)?[...a,v]:a,[]);const r:Point[]=[];d.forEach((v,i)=>{if(i>0&&i<d.length-1){const a=d[i-1],b=d[i+1],cross=Math.abs((v.x-a.x)*(b.y-a.y)-(v.y-a.y)*(b.x-a.x));if(cross<8*Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))&&v.x>=Math.min(a.x,b.x)-8&&v.x<=Math.max(a.x,b.x)+8&&v.y>=Math.min(a.y,b.y)-8&&v.y<=Math.max(a.y,b.y)+8)return}r.push(v)});return r}
 function route(a:Point,b:Point,s:Side,points?:Point[],bends?:Point[]){
- if(points?.length>=2){
+ if(points && points.length>=2){
   const p=[a,...points.slice(1,-1),b]
   return repairEndpoints(normalize(p),a,b,s)
  }
