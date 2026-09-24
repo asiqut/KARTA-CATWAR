@@ -19,7 +19,17 @@ function center(l:Location,t:Transition):Point{const w=l.size/COLS,h=l.size/ROWS
 function edge(l:Location,t:Transition,s:Side):Point{const c=center(l,t),w=l.size/COLS,h=l.size/ROWS;return s==='left'?{x:c.x-w/2,y:c.y}:s==='right'?{x:c.x+w/2,y:c.y}:s==='top'?{x:c.x,y:c.y-h/2}:{x:c.x,y:c.y+h/2}}
 function relation(a:Location,b:Location):Side{const dx=b.x+b.size/2-(a.x+a.size/2),dy=b.y+b.size/2-(a.y+a.size/2);return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'right':'left'):(dy>=0?'bottom':'top')}
 function sideFor(l:Location,t:Transition,p:Point,fallback:Side):Side{const c=center(l,t),dx=p.x-c.x,dy=p.y-c.y;if(Math.abs(dx)<1&&Math.abs(dy)<1)return fallback;return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'right':'left'):(dy>=0?'bottom':'top')}
-function boundary(l:Location,p:Point):Point{const L=l.x,R=l.x+l.size,T=l.y,B=l.y+l.size,cl=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));const q=[{x:L,y:cl(p.y,T,B),d:Math.abs(p.x-L)},{x:R,y:cl(p.y,T,B),d:Math.abs(p.x-R)},{x:cl(p.x,L,R),y:T,d:Math.abs(p.y-T)},{x:cl(p.x,L,R),y:B,d:Math.abs(p.y-B)}];return q.reduce((a,b)=>b.d<a.d?b:a,q[0])}
+function boundary(l:Location,p:Point):Point{
+ const L=l.x,R=l.x+l.size,T=l.y,B=l.y+l.size,inset=32
+ const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v))
+ const q=[
+  {x:L,y:clamp(p.y,T+inset,B-inset),d:Math.abs(p.x-L)},
+  {x:R,y:clamp(p.y,T+inset,B-inset),d:Math.abs(p.x-R)},
+  {x:clamp(p.x,L+inset,R-inset),y:T,d:Math.abs(p.y-T)},
+  {x:clamp(p.x,L+inset,R-inset),y:B,d:Math.abs(p.y-B)}
+ ]
+ return q.reduce((a,b)=>b.d<a.d?b:a,q[0])
+}
 const STUB=48
 function outward(p:Point,s:Side,d=STUB):Point{
  if(s==='left')return{x:p.x-d,y:p.y}
@@ -43,11 +53,25 @@ function normalize(p:Point[]):Point[]{
  d.forEach((v,i)=>{
   if(i>0&&i<d.length-1){
    const a=d[i-1],b=d[i+1]
-   if((Math.abs(a.x-v.x)<5&&Math.abs(v.x-b.x)<5)||(Math.abs(a.y-v.y)<5&&Math.abs(v.y-b.y)<5))return
+   const sameVertical=Math.abs(a.x-v.x)<5&&Math.abs(v.x-b.x)<5
+   const sameHorizontal=Math.abs(a.y-v.y)<5&&Math.abs(v.y-b.y)<5
+   if(sameVertical||sameHorizontal)return
   }
   r.push(v)
  })
  return r
+}
+function boundary(l:Location,p:Point):Point{
+ const L=l.x,R=l.x+l.size,T=l.y,B=l.y+l.size
+ const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v))
+ const inset=32
+ const candidates=[
+  {x:L,y:clamp(p.y,T+inset,B-inset),d:Math.abs(p.x-L)},
+  {x:R,y:clamp(p.y,T+inset,B-inset),d:Math.abs(p.x-R)},
+  {x:clamp(p.x,L+inset,R-inset),y:T,d:Math.abs(p.y-T)},
+  {x:clamp(p.x,L+inset,R-inset),y:B,d:Math.abs(p.y-B)}
+ ]
+ return candidates.reduce((a,b)=>b.d<a.d?b:a,candidates[0])
 }
 function orthogonalize(points:Point[],a:Point,b:Point,fs:Side,ts:Side):Point[]{
  const sa=outward(a,fs),sb=outward(b,ts)
