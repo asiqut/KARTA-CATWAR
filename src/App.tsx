@@ -20,25 +20,58 @@ function edge(l:Location,t:Transition,s:Side):Point{const c=center(l,t),w=l.size
 function relation(a:Location,b:Location):Side{const dx=b.x+b.size/2-(a.x+a.size/2),dy=b.y+b.size/2-(a.y+a.size/2);return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'right':'left'):(dy>=0?'bottom':'top')}
 function sideFor(l:Location,t:Transition,p:Point,fallback:Side):Side{const c=center(l,t),dx=p.x-c.x,dy=p.y-c.y;if(Math.abs(dx)<1&&Math.abs(dy)<1)return fallback;return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'right':'left'):(dy>=0?'bottom':'top')}
 function boundary(l:Location,p:Point):Point{const L=l.x,R=l.x+l.size,T=l.y,B=l.y+l.size,cl=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));const q=[{x:L,y:cl(p.y,T,B),d:Math.abs(p.x-L)},{x:R,y:cl(p.y,T,B),d:Math.abs(p.x-R)},{x:cl(p.x,L,R),y:T,d:Math.abs(p.y-T)},{x:cl(p.x,L,R),y:B,d:Math.abs(p.y-B)}];return q.reduce((a,b)=>b.d<a.d?b:a,q[0])}
-function defaults(a:Point,b:Point,s:Side):Point[]{if(s==='left'||s==='right'){const x=a.x+(b.x-a.x)/2;return[a,{x,y:a.y},{x,y:b.y},b]}const y=a.y+(b.y-a.y)/2;return[a,{x:a.x,y},{x:b.x,y},b]}
-function same(a:Point,b:Point,t=5){return Math.hypot(a.x-b.x,a.y-b.y)<=t}
-function normalize(p:Point[]):Point[]{const d=p.reduce<Point[]>((a,v)=>!a.length||!same(a[a.length-1],v)?[...a,v]:a,[]);const r:Point[]=[];d.forEach((v,i)=>{if(i>0&&i<d.length-1){const a=d[i-1],b=d[i+1],cross=Math.abs((v.x-a.x)*(b.y-a.y)-(v.y-a.y)*(b.x-a.x));if(cross<8*Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))&&v.x>=Math.min(a.x,b.x)-8&&v.x<=Math.max(a.x,b.x)+8&&v.y>=Math.min(a.y,b.y)-8&&v.y<=Math.max(a.y,b.y)+8)return}r.push(v)});return r}
-function route(a:Point,b:Point,s:Side,points?:Point[],bends?:Point[]){
- if(points && points.length>=2){
-  const p=[a,...points.slice(1,-1),b]
-  return repairEndpoints(normalize(p),a,b,s)
- }
- if(bends?.length)return repairEndpoints(normalize([a,...bends,b]),a,b,s)
- return defaults(a,b,s)
+const STUB=48
+function outward(p:Point,s:Side,d=STUB):Point{
+ if(s==='left')return{x:p.x-d,y:p.y}
+ if(s==='right')return{x:p.x+d,y:p.y}
+ if(s==='top')return{x:p.x,y:p.y-d}
+ return{x:p.x,y:p.y+d}
 }
-function repairEndpoints(points:Point[],a:Point,b:Point,s:Side):Point[]{
- if(points.length<2)return defaults(a,b,s)
- const p=points.map(v=>({...v}));p[0]=a;p[p.length-1]=b
- const first=p[1],last=p[p.length-2]
- if(s==='left'||s==='right')p[1]={x:first.x,y:a.y};else p[1]={x:a.x,y:first.y}
- const dx=Math.abs(b.x-last.x),dy=Math.abs(b.y-last.y)
- if(dx<dy)p[p.length-2]={x:b.x,y:last.y};else p[p.length-2]={x:last.x,y:b.y}
- return normalize(p)
+function defaults(a:Point,b:Point,fs:Side,ts:Side):Point[]{
+ const sa=outward(a,fs),sb=outward(b,ts)
+ if(fs==='left'||fs==='right'){
+  const midX=(sa.x+sb.x)/2
+  return normalize([a,sa,{x:midX,y:sa.y},{x:midX,y:sb.y},sb,b])
+ }
+ const midY=(sa.y+sb.y)/2
+ return normalize([a,sa,{x:sa.x,y:midY},{x:sb.x,y:midY},sb,b])
+}
+function same(a:Point,b:Point,t=5){return Math.hypot(a.x-b.x,a.y-b.y)<=t}
+function normalize(p:Point[]):Point[]{
+ const d=p.reduce<Point[]>((a,v)=>!a.length||!same(a[a.length-1],v)?[...a,v]:a,[])
+ const r:Point[]=[]
+ d.forEach((v,i)=>{
+  if(i>0&&i<d.length-1){
+   const a=d[i-1],b=d[i+1]
+   if((Math.abs(a.x-v.x)<5&&Math.abs(v.x-b.x)<5)||(Math.abs(a.y-v.y)<5&&Math.abs(v.y-b.y)<5))return
+  }
+  r.push(v)
+ })
+ return r
+}
+function orthogonalize(points:Point[],a:Point,b:Point,fs:Side,ts:Side):Point[]{
+ const sa=outward(a,fs),sb=outward(b,ts)
+ const raw=[sa,...points.slice(1,-1),sb]
+ const out:Point[]=[a,sa]
+ for(const q of raw.slice(1)){
+  const prev=out[out.length-1]
+  if(Math.abs(prev.x-q.x)<1||Math.abs(prev.y-q.y)<1){out.push(q);continue}
+  if(Math.abs(q.x-prev.x)>=Math.abs(q.y-prev.y))out.push({x:q.x,y:prev.y})
+  else out.push({x:prev.x,y:q.y})
+  out.push(q)
+ }
+ const last=out[out.length-1]
+ if(Math.abs(last.x-b.x)>=1&&Math.abs(last.y-b.y)>=1){
+  if(Math.abs(last.x-b.x)>=Math.abs(last.y-b.y))out.push({x:b.x,y:last.y})
+  else out.push({x:last.x,y:b.y})
+ }
+ out.push(b)
+ return normalize(out)
+}
+function route(a:Point,b:Point,fs:Side,ts:Side,points?:Point[],bends?:Point[]):Point[]{
+ if(points&&points.length>=2)return orthogonalize(points,a,b,fs,ts)
+ if(bends?.length)return orthogonalize([a,...bends,b],a,b,fs,ts)
+ return defaults(a,b,fs,ts)
 }
 function path(p:Point[]){return p.map((v,i)=>`${i?'L':'M'} ${v.x} ${v.y}`).join(' ')}
 function handle(l:Location,t:Transition|undefined,s:Side):Point{if(!t)return{x:l.x+l.size/2,y:l.y+l.size/2};return edge(l,t,s)}
@@ -82,7 +115,7 @@ export function App(){
    const newG=geometryWithLocations(c,fromL,toL,fs,ts);
    if(!oldG||!newG)return c;
    if(c.points||c.bends){
-    const oldPts=route(oldG.a,oldG.b,oldG.fs,c.points,c.bends);
+    const oldPts=route(oldG.a,oldG.b,oldG.fs,oldG.ts,c.points,c.bends);
     const next=oldPts.map(p=>({...p}));
     next[0]=newG.a;next[next.length-1]=newG.b;
     if(d.id===c.from.locationId&&next.length>1){
@@ -119,17 +152,17 @@ export function App(){
   return{fl,tl,ft,tt,fs,ts,a,b};
  }
  function geometry(c:Connector){const fl=map.get(c.from.locationId),tl=map.get(c.to.locationId);if(!fl||!tl)return null;return geometryWithLocations(c,fl,tl)}
- function beginMid(e:ReactPointerEvent<SVGCircleElement>,id:string,index:number){if(mode!=='editor'||connectionMode||pan||deleteMode)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);const c=connectors.find(v=>v.id===id),g=c&&geometry(c);if(!c||!g)return;midDrag.current={id,index,points:route(g.a,g.b,g.fs,c.points,c.bends)};setSelectedConnector(id)}
+ function beginMid(e:ReactPointerEvent<SVGCircleElement>,id:string,index:number){if(mode!=='editor'||connectionMode||pan||deleteMode)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);const c=connectors.find(v=>v.id===id),g=c&&geometry(c);if(!c||!g)return;midDrag.current={id,index,points:route(g.a,g.b,g.fs,g.ts,c.points,c.bends)};setSelectedConnector(id)}
  function dragMid(e:ReactPointerEvent<SVGCircleElement>){const d=midDrag.current;if(!d)return;const i=d.index,p=d.points;if(!p[i]||!p[i+1])return;const q=svgPoint(e),next=p.map(v=>({...v})),horizontal=Math.abs(p[i+1].x-p[i].x)>=Math.abs(p[i+1].y-p[i].y),last=p.length-2
   if(i>0&&i<last){if(horizontal){next[i].y=q.y;next[i+1].y=q.y}else{next[i].x=q.x;next[i+1].x=q.x}}
   else if(i===0){if(horizontal){next.splice(1,0,{x:p[0].x,y:q.y});next[2].y=q.y}else{next.splice(1,0,{x:q.x,y:p[0].y});next[2].x=q.x}}
   else {if(horizontal){next.splice(next.length-1,0,{x:p[last].x,y:q.y});next[next.length-2].y=q.y}else{next.splice(next.length-1,0,{x:q.x,y:p[last].y});next[next.length-2].x=q.x}}
-  const c=connectors.find(v=>v.id===d.id),g=c&&geometry(c);if(!c||!g)return;const nr=normalize(next),def=defaults(g.a,g.b,g.fs),reset=nr.length===def.length&&nr.every((v,j)=>same(v,def[j],8));setConnectors(v=>v.map(x=>x.id===d.id?{...x,points:reset?undefined:nr,bends:undefined}:x))
+  const c=connectors.find(v=>v.id===d.id),g=c&&geometry(c);if(!c||!g)return;const nr=normalize(next),def=defaults(g.a,g.b,g.fs,g.ts),reset=nr.length===def.length&&nr.every((v,j)=>same(v,def[j],8));setConnectors(v=>v.map(x=>x.id===d.id?{...x,points:reset?undefined:nr,bends:undefined}:x))
  }
  function stopMid(e?:ReactPointerEvent<SVGCircleElement>){if(e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);midDrag.current=null}
  function beginEnd(e:ReactPointerEvent<SVGCircleElement>,id:string,which:'from'|'to'){if(mode!=='editor'||connectionMode||pan||deleteMode)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);endDrag.current={id,which};setSelectedConnector(id)}
  function dragEnd(e:ReactPointerEvent<SVGCircleElement>){const d=endDrag.current;if(!d)return;const c=connectors.find(v=>v.id===d.id),g=c&&geometry(c);if(!c||!g)return;const l=d.which==='from'?g.fl:g.tl,t=d.which==='from'?g.ft:g.tt;if(!t)return;const p=svgPoint(e),fallback=d.which==='from'?(c.fromSide??g.fs):(c.toSide??g.ts),s=nearestSide(l,t,p,fallback);if(s===fallback)return;
- const oldPts=route(g.a,g.b,g.fs,c.points,c.bends),next=oldPts.map(v=>({...v}));
+ const oldPts=route(g.a,g.b,g.fs,g.ts,c.points,c.bends),next=oldPts.map(v=>({...v}));
  if(d.which==='from'){const a=edge(g.fl,g.ft,s);next[0]=a;if(next.length>1){if(s==='left'||s==='right')next[1]={x:next[1].x,y:a.y};else next[1]={x:a.x,y:next[1].y}}}
  else {const b=edge(g.tl,g.tt!,s);next[next.length-1]=b;if(next.length>1){const j=next.length-2;if(s==='left'||s==='right')next[j]={x:next[j].x,y:b.y};else next[j]={x:b.x,y:next[j].y}}}
  setConnectors(v=>v.map(x=>x.id===d.id?{...x,[d.which==='from'?'fromSide':'toSide']:s,points:normalize(next),bends:undefined}:x))}
@@ -148,9 +181,9 @@ export function App(){
     <rect x={-titleHitbox} y={-titleFontSize-titleHitbox} width={l.size+titleHitbox*2} height={titleFontSize+titleHitbox+20} className="location-title-hitbox" onPointerDown={e=>startDrag(e,l,true)} onPointerMove={moveLocation} onPointerUp={stopDrag} onPointerCancel={()=>stopDrag()} onClick={e=>{e.stopPropagation();setSelected(l.id)}}/><text x={l.size/2} y="-14" textAnchor="middle" className="location-title" style={{fontSize:titleFontSize}} pointerEvents="none">{l.name}</text>
     <g className="transition-grid" pointerEvents={connectionMode&&!(oneWay&&start)?'auto':'none'}>{l.transitions.map(t=>{const w=l.size/COLS,h=l.size/ROWS,ep={locationId:l.id,transitionId:t.id},key=`${l.id}:${t.id}`,st=start?.locationId===l.id&&start.transitionId===t.id,c=connected.has(key),o=orange.has(key);return <g key={t.id} className="transition-cell" onPointerEnter={()=>setHovered(ep)} onPointerLeave={()=>setHovered(null)} onPointerDown={e=>{e.stopPropagation();setSelected(l.id);if(deleteMode)deleteTransition(ep,e);else if(start)finishConnection(ep,e);else if(oneWay)beginOne(ep,e);else beginConnection(ep,e)}} onClick={e=>e.stopPropagation()}><rect x={t.col*w} y={t.row*h} width={w} height={h} style={{fill:st?(oneWay?'#FF7000':'#ffffff38'):o?'#FF7000':c?'#fff':'transparent',stroke:o||(st&&oneWay)?'#FF7000':'rgba(255,255,255,.15)',strokeWidth:2}}/></g>})}</g><rect width={l.size} height={l.size} className="location-frame" pointerEvents="none"/>
    </g>)}
-   <g className="connectors-layer">{connectors.map(c=>{const g=geometry(c);if(!g)return null;const pts=route(g.a,g.b,g.fs,c.points,c.bends),d=path(pts),edit=mode==='editor'&&selectedConnector===c.id,handles=pts.slice(0,-1).map((p,i)=>({p:{x:(p.x+pts[i+1].x)/2,y:(p.y+pts[i+1].y)/2},i})),sides:Side[]=['left','right','top','bottom'];return <g key={c.id}><path d={d} fill="none" stroke="transparent" strokeWidth="22" pointerEvents="stroke" onPointerDown={e=>{if(connectionMode||pan||deleteMode)return;e.stopPropagation();setSelectedConnector(c.id)}}/>{c.oneWay?<path d={d} fill="none" stroke="#FF7000" strokeWidth="4" strokeDasharray="10 8" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/>:<><path d={d} fill="none" stroke="#000" strokeWidth="7" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/><path d={d} fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/></>}{edit&&<>{handles.map(({p,i})=><circle key={`m${i}`} className="connector-mid-handle" cx={p.x} cy={p.y} r="10" onPointerDown={e=>beginMid(e,c.id,i)} onPointerMove={dragMid} onPointerUp={stopMid} onPointerCancel={()=>stopMid()}/>)}{sides.map(s=>{const p=handle(g.fl,g.ft,s);return <g key={`f${s}`} className="connector-side-handle-group"><circle cx={p.x} cy={p.y} r="26" fill="transparent" pointerEvents="all" onPointerDown={e=>beginEnd(e,c.id,'from')} onPointerMove={dragEnd} onPointerUp={stopEnd} onPointerCancel={()=>stopEnd()}/><circle className={`connector-side-handle ${c.fromSide===s?'active':''}`} cx={p.x} cy={p.y} r="13" pointerEvents="none"/></g>})}{!c.oneWay&&g.tt&&sides.map(s=>{const p=handle(g.tl,g.tt,s);return <g key={`t${s}`} className="connector-side-handle-group"><circle cx={p.x} cy={p.y} r="26" fill="transparent" pointerEvents="all" onPointerDown={e=>beginEnd(e,c.id,'to')} onPointerMove={dragEnd} onPointerUp={stopEnd} onPointerCancel={()=>stopEnd()}/><circle className={`connector-side-handle ${c.toSide===s?'active':''}`} cx={p.x} cy={p.y} r="13" pointerEvents="none"/></g>})}</>}</g>})}</g>
-   {start&&!deleteMode&&!oneWay&&hovered&&(()=>{const fl=map.get(start.locationId),tl=map.get(hovered.locationId);if(!fl||!tl)return null;const ft=fl.transitions.find(t=>t.id===start.transitionId),tt=tl.transitions.find(t=>t.id===hovered.transitionId);if(!ft||!tt)return null;const fs=sideFor(fl,ft,center(tl,tt),relation(fl,tl)),a=edge(fl,ft,fs),b=edge(tl,tt,sideFor(tl,tt,center(fl,ft),relation(tl,fl))),d=path(defaults(a,b,fs));return <g><path d={d} fill="none" stroke="#000" strokeWidth="7"/><path d={d} fill="none" stroke="#fff" strokeWidth="4"/></g>})()}
-   {start&&oneWay&&!deleteMode&&hoverLoc&&(()=>{const fl=map.get(start.locationId),tl=map.get(hoverLoc);if(!fl||!tl||fl.id===tl.id)return null;const ft=fl.transitions.find(t=>t.id===start.transitionId);if(!ft)return null;const fs=sideFor(fl,ft,{x:tl.x+tl.size/2,y:tl.y+tl.size/2},relation(fl,tl)),a=edge(fl,ft,fs),b=boundary(tl,a),d=path(defaults(a,b,fs));return <path d={d} fill="none" stroke="#FF7000" strokeWidth="4" strokeDasharray="10 8"/>})()}
+   <g className="connectors-layer">{connectors.map(c=>{const g=geometry(c);if(!g)return null;const pts=route(g.a,g.b,g.fs,g.ts,c.points,c.bends),d=path(pts),edit=mode==='editor'&&selectedConnector===c.id,handles=pts.slice(0,-1).map((p,i)=>({p:{x:(p.x+pts[i+1].x)/2,y:(p.y+pts[i+1].y)/2},i})),sides:Side[]=['left','right','top','bottom'];return <g key={c.id}><path d={d} fill="none" stroke="transparent" strokeWidth="22" pointerEvents="stroke" onPointerDown={e=>{if(connectionMode||pan||deleteMode)return;e.stopPropagation();setSelectedConnector(c.id)}}/>{c.oneWay?<path d={d} fill="none" stroke="#FF7000" strokeWidth="4" strokeDasharray="10 8" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/>:<><path d={d} fill="none" stroke="#000" strokeWidth="7" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/><path d={d} fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter" pointerEvents="none"/></>}{edit&&<>{handles.map(({p,i})=><circle key={`m${i}`} className="connector-mid-handle" cx={p.x} cy={p.y} r="10" onPointerDown={e=>beginMid(e,c.id,i)} onPointerMove={dragMid} onPointerUp={stopMid} onPointerCancel={()=>stopMid()}/>)}{sides.map(s=>{const p=handle(g.fl,g.ft,s);return <g key={`f${s}`} className="connector-side-handle-group"><circle cx={p.x} cy={p.y} r="26" fill="transparent" pointerEvents="all" onPointerDown={e=>beginEnd(e,c.id,'from')} onPointerMove={dragEnd} onPointerUp={stopEnd} onPointerCancel={()=>stopEnd()}/><circle className={`connector-side-handle ${c.fromSide===s?'active':''}`} cx={p.x} cy={p.y} r="13" pointerEvents="none"/></g>})}{!c.oneWay&&g.tt&&sides.map(s=>{const p=handle(g.tl,g.tt,s);return <g key={`t${s}`} className="connector-side-handle-group"><circle cx={p.x} cy={p.y} r="26" fill="transparent" pointerEvents="all" onPointerDown={e=>beginEnd(e,c.id,'to')} onPointerMove={dragEnd} onPointerUp={stopEnd} onPointerCancel={()=>stopEnd()}/><circle className={`connector-side-handle ${c.toSide===s?'active':''}`} cx={p.x} cy={p.y} r="13" pointerEvents="none"/></g>})}</>}</g>})}</g>
+   {start&&!deleteMode&&!oneWay&&hovered&&(()=>{const fl=map.get(start.locationId),tl=map.get(hovered.locationId);if(!fl||!tl)return null;const ft=fl.transitions.find(t=>t.id===start.transitionId),tt=tl.transitions.find(t=>t.id===hovered.transitionId);if(!ft||!tt)return null;const fs=sideFor(fl,ft,center(tl,tt),relation(fl,tl)),a=edge(fl,ft,fs),b=edge(tl,tt,sideFor(tl,tt,center(fl,ft),relation(tl,fl))),d=path(defaults(a,b,fs,ts));return <g><path d={d} fill="none" stroke="#000" strokeWidth="7"/><path d={d} fill="none" stroke="#fff" strokeWidth="4"/></g>})()}
+   {start&&oneWay&&!deleteMode&&hoverLoc&&(()=>{const fl=map.get(start.locationId),tl=map.get(hoverLoc);if(!fl||!tl||fl.id===tl.id)return null;const ft=fl.transitions.find(t=>t.id===start.transitionId);if(!ft)return null;const fs=sideFor(fl,ft,{x:tl.x+tl.size/2,y:tl.y+tl.size/2},relation(fl,tl)),a=edge(fl,ft,fs),b=boundary(tl,a),d=path(defaults(a,b,fs,ts));return <path d={d} fill="none" stroke="#FF7000" strokeWidth="4" strokeDasharray="10 8"/>})()}
   </svg></div></main>
   {selected&&mode==='editor'&&<section className="inspector"><div className="inspector-title">Локация</div><input value={map.get(selected)?.name??''} onChange={e=>setLocations(v=>v.map(l=>l.id===selected?{...l,name:e.target.value}:l))}/><div className="inspector-field"><label>Фон локации</label><input type="file" accept="image/*" onChange={e=>setBackground(e.target.files?.[0])}/>{map.get(selected)?.background&&<button className="remove-bg" onClick={removeBackground}>Убрать фон</button>}</div><div className="inspector-note">Фон находится под сеткой переходов.</div></section>}
  </div>
