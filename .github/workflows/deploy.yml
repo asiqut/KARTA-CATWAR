@@ -27,7 +27,20 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build
-        run: npm run build
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+      - name: Upload build log
+        if: steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+      - name: Fail build
+        if: steps.build.outcome == 'failure'
+        run: exit 1
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
