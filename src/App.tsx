@@ -35,7 +35,83 @@ function segmentClear(a:Point,b:Point,locations:Location[],sourceId:string,targe
 type HeapItem={node:number;dir:number;dist:number;turns:number}
 function heapPush(h:HeapItem[],x:HeapItem){h.push(x);let i=h.length-1;while(i){const p=Math.floor((i-1)/2),a=h[p],b=h[i];if(a.dist<b.dist-.01||(Math.abs(a.dist-b.dist)<=.01&&a.turns<=b.turns))break;h[p]=b;h[i]=a;i=p}}
 function heapPop(h:HeapItem[]):HeapItem|undefined{if(!h.length)return;const out=h[0],last=h.pop()!;if(h.length){h[0]=last;let i=0;for(;;){const l=i*2+1,r=l+1;if(l>=h.length)break;let m=l;if(r<h.length&&(h[r].dist<h[l].dist-.01||(Math.abs(h[r].dist-h[l].dist)<=.01&&h[r].turns<h[l].turns)))m=r;if(h[i].dist<h[m].dist-.01||(Math.abs(h[i].dist-h[m].dist)<=.01&&h[i].turns<=h[m].turns))break;const t=h[i];h[i]=h[m];h[m]=t;i=m}}return out}
-function shortestOutside(start:Point,end:Point,locations:Location[],sourceId:string,targetId:string):Point[]{if(same(start,end))return[start,end];const xs:number[]=[start.x,end.x],ys:number[]=[start.y,end.y];locations.forEach(l=>{const c=l.id===sourceId||l.id===targetId?0:ROUTE_CLEARANCE,r=rect(l,c);xs.push(r.left,r.right);ys.push(r.top,r.bottom)});const ux=[...new Set(xs.map(v=>Math.round(v*10)/10)].sort((a,b)=>a-b),uy=[...new Set(ys.map(v=>Math.round(v*10)/10)].sort((a,b)=>a-b),nodes:{x:number;y:number}[]=[],index=new Map<string,number>();for(let yi=0;yi<uy.length;yi++)for(let xi=0;xi<ux.length;xi++){const p={x:ux[xi],y:uy[yi]};let blocked=false;for(const l of locations){const c=l.id===sourceId||l.id===targetId?0:ROUTE_CLEARANCE;if(pointBlocked(p,rect(l,c))){blocked=true;break}}if(blocked)continue;const id=nodes.length;nodes.push(p);index.set(`${xi}:${yi}`,id)}const si=index.get(`${ux.indexOf(start.x)}:${uy.indexOf(start.y)}`),ei=index.get(`${ux.indexOf(end.x)}:${uy.indexOf(end.y)}`);if(si===undefined||ei===undefined)return[start,end];const key=(n:number,d:number)=>`${n}|${d}`,dist=new Map<string,number>(),turns=new Map<string,number>(),prev=new Map<string,string>(),heap:HeapItem[]=[];dist.set(key(si,-1),0);turns.set(key(si,-1),0);heapPush(heap,{node:si,dir:-1,dist:0,turns:0});const dirs=[[1,0],[-1,0],[0,1],[0,-1]];let finish:string|undefined;while(heap.length){const cur=heapPop(heap)!;const ck=key(cur.node,cur.dir);if(cur.dist>(dist.get(ck)??Infinity)+.01)continue;if(cur.node===ei){finish=ck;break}const p=nodes[cur.node];for(let d=0;d<4;d++){const [dx,dy]=dirs[d],nx=p.x+dx,ny=p.y+dy,xi=ux.indexOf(nx),yi=uy.indexOf(ny);if(xi<0||yi<0)continue;const n=index.get(`${xi}:${yi}`);if(n===undefined)continue;const q=nodes[n];if(!segmentClear(p,q,locations,sourceId,targetId))continue;const nd=cur.dist+Math.abs(q.x-p.x)+Math.abs(q.y-p.y),nt=cur.turns+(cur.dir!==-1&&cur.dir!==d?1:0),nk=key(n,d),od=dist.get(nk)??Infinity,ot=turns.get(nk)??Infinity;if(nd<od-.01||(Math.abs(nd-od)<=.01&&nt<ot)){dist.set(nk,nd);turns.set(nk,nt);prev.set(nk,ck);heapPush(heap,{node:n,dir:d,dist:nd,turns:nt})}}}if(!finish)return[start,end];const out:Point[]=[];let k:string|undefined=finish;while(k){out.push(nodes[Number(k.split('|')[0])]);k=prev.get(k)}out.reverse();return normalize(out)}
+function shortestOutside(start:Point,end:Point,locations:Location[],sourceId:string,targetId:string):Point[]{
+ if(same(start,end))return[start,end]
+ const xs:number[]=[start.x,end.x]
+ const ys:number[]=[start.y,end.y]
+ locations.forEach(l=>{
+  const clearance=l.id===sourceId||l.id===targetId?0:ROUTE_CLEARANCE
+  const r=rect(l,clearance)
+  xs.push(r.left,r.right)
+  ys.push(r.top,r.bottom)
+ })
+ const ux=[...new Set(xs.map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b)
+ const uy=[...new Set(ys.map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b)
+ const nodes:Array<Point>=[]
+ const index=new Map<string,number>()
+ for(let yi=0;yi<uy.length;yi++)for(let xi=0;xi<ux.length;xi++){
+  const p:Point={x:ux[xi],y:uy[yi]}
+  let blocked=false
+  for(const l of locations){
+   const clearance=l.id===sourceId||l.id===targetId?0:ROUTE_CLEARANCE
+   if(pointBlocked(p,rect(l,clearance))){blocked=true;break}
+  }
+  if(blocked)continue
+  const id=nodes.length
+  nodes.push(p)
+  index.set(`${xi}:${yi}`,id)
+ }
+ const si=index.get(`${ux.indexOf(start.x)}:${uy.indexOf(start.y)}`)
+ const ei=index.get(`${ux.indexOf(end.x)}:${uy.indexOf(end.y)}`)
+ if(si===undefined||ei===undefined)return[start,end]
+ const key=(n:number,d:number)=>`${n}|${d}`
+ const dist=new Map<string,number>()
+ const turns=new Map<string,number>()
+ const prev=new Map<string,string>()
+ const heap:HeapItem[]=[]
+ dist.set(key(si,-1),0)
+ turns.set(key(si,-1),0)
+ heapPush(heap,{node:si,dir:-1,dist:0,turns:0})
+ const dirs:[number,number][]=[[1,0],[-1,0],[0,1],[0,-1]]
+ let finish:string|undefined
+ while(heap.length){
+  const cur=heapPop(heap)!
+  const ck=key(cur.node,cur.dir)
+  if(cur.dist>(dist.get(ck)??Infinity)+.01)continue
+  if(cur.node===ei){finish=ck;break}
+  const p=nodes[cur.node]
+  for(let d=0;d<4;d++){
+   const [dx,dy]=dirs[d]
+   const nx=p.x+dx,ny=p.y+dy
+   const xi=ux.indexOf(nx),yi=uy.indexOf(ny)
+   if(xi<0||yi<0)continue
+   const n=index.get(`${xi}:${yi}`)
+   if(n===undefined)continue
+   const q=nodes[n]
+   if(!segmentClear(p,q,locations,sourceId,targetId))continue
+   const nd=cur.dist+Math.abs(q.x-p.x)+Math.abs(q.y-p.y)
+   const nt=cur.turns+(cur.dir!==-1&&cur.dir!==d?1:0)
+   const nk=key(n,d)
+   const od=dist.get(nk)??Infinity
+   const ot=turns.get(nk)??Infinity
+   if(nd<od-.01||(Math.abs(nd-od)<=.01&&nt<ot)){
+    dist.set(nk,nd)
+    turns.set(nk,nt)
+    prev.set(nk,ck)
+    heapPush(heap,{node:n,dir:d,dist:nd,turns:nt})
+   }
+  }
+ }
+ if(!finish)return[start,end]
+ const out:Point[]=[]
+ let k:string|undefined=finish
+ while(k){
+  out.push(nodes[Number(k.split('|')[0])])
+  k=prev.get(k)
+ }
+ out.reverse()
+ return normalize(out)
+}
 function routeLength(p:Point[]){let n=0;for(let i=1;i<p.length;i++)n+=Math.abs(p[i].x-p[i-1].x)+Math.abs(p[i].y-p[i-1].y);return n}
 function normalRoute(fl:Location,ft:Transition,tl:Location,tt:Transition,fs:Side,ts:Side,locations:Location[],fp?:Point,tp?:Point){const a=fp??edge(fl,ft,fs),b=tp??edge(tl,tt,ts),ae=locationExit(fl,a,fs),be=locationExit(tl,b,ts),outside=shortestOutside(ae,be,locations,fl.id,tl.id);return normalize([a,ae,...outside.slice(1,-1),be,b])}
 function oneWayRoute(fl:Location,ft:Transition,tl:Location,fs:Side,ts:Side,locations:Location[],fp?:Point,tp?:Point){const a=fp??edge(fl,ft,fs),ae=locationExit(fl,a,fs),b=tp??boundaryPointForSide(tl,ae,ts),outside=shortestOutside(ae,b,locations,fl.id,tl.id);return normalize([a,ae,...outside.slice(1)])}
