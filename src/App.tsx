@@ -131,9 +131,9 @@ export function App(){
  const connected=useMemo(()=>{const s=new Set<string>();connectors.forEach(c=>{s.add(`${c.from.locationId}:${c.from.transitionId}`);if(!c.oneWay)s.add(`${c.to.locationId}:${c.to.transitionId}`)});return s},[connectors])
  const orange=useMemo(()=>new Set(connectors.filter(c=>c.oneWay).map(c=>`${c.from.locationId}:${c.from.transitionId}`)),[connectors])
  function addLocation(){const id=`loc-${Date.now()}`;setLocations(v=>[...v,{id,name:`Локация ${v.length+1}`,x:900+v.length*100,y:1100+v.length*100,size:SIZE,background:null,transitions:makeTransitions(id)}]);setSelected(id)}
- function startDrag(e:ReactPointerEvent<SVGElement>,l:Location,allowConnection=false){if(endDrag.current||midDrag.current||selectedConnector)return;if(mode!=='editor'||(!allowConnection&&connectionMode)||pan)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={id:l.id,sx:e.clientX,sy:e.clientY,x:l.x,y:l.y,lastX:l.x,lastY:l.y,size:l.size};setSelected(l.id)}
+ function startDrag(e:ReactPointerEvent<SVGElement>,l:Location,allowConnection=false){if(endDrag.current||midDrag.current)return;if(mode!=='editor'||(!allowConnection&&connectionMode)||pan)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={id:l.id,sx:e.clientX,sy:e.clientY,x:l.x,y:l.y,lastX:l.x,lastY:l.y,size:l.size};setSelected(l.id)}
  function moveLocation(e:ReactPointerEvent<SVGElement>){
-  if(endDrag.current||midDrag.current||selectedConnector){drag.current=null;return;}
+  if(endDrag.current||midDrag.current){drag.current=null;return;}
   if(!drag.current)return;
   const d=drag.current;
   let x=d.x+(e.clientX-d.sx)/(zoom*SCALE),y=d.y+(e.clientY-d.sy)/(zoom*SCALE);
