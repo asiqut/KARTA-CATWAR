@@ -2,7 +2,8 @@ import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } fro
 
 type Transition = { id:string; row:number; col:number }
 type Point = { x:number; y:number }
-type Location = { id:string; name:string; x:number; y:number; size:number; background:string|null; transitions:Transition[] }
+type FrameItem = { kind:'color'|'preset'; value:string }
+type Location = { id:string; name:string; x:number; y:number; size:number; background:string|null; transitions:Transition[]; frame:FrameItem[] }
 type Endpoint = { locationId:string; transitionId:string }
 type Side = 'left'|'right'|'top'|'bottom'
 type Connector = { id:string; from:Endpoint; to:Endpoint; color:string; arrows:'none'|'start'|'end'|'both'; oneWay?:boolean; bends?:Point[]; points?:Point[]; fromPoint?:Point; toPoint?:Point; fromSide?:Side; toSide?:Side }
@@ -10,8 +11,8 @@ type Connector = { id:string; from:Endpoint; to:Endpoint; color:string; arrows:'
 const COLS=10, ROWS=6, SIZE=440, CW=5000, CH=3500, SCALE=.55, SNAP=32, MAGNET=64
 const makeTransitions=(id:string):Transition[]=>Array.from({length:ROWS*COLS},(_,i)=>({id:`${id}-t-${i}`,row:Math.floor(i/COLS),col:i%COLS}))
 const initialLocations:Location[]=[
- {id:'loc-1',name:'Локация 1',x:700,y:500,size:SIZE,background:null,transitions:makeTransitions('loc-1')},
- {id:'loc-2',name:'Локация 2',x:1450,y:750,size:SIZE,background:null,transitions:makeTransitions('loc-2')}
+ {id:'loc-1',name:'Локация 1',x:700,y:500,size:SIZE,background:null,transitions:makeTransitions('loc-1'),frame:[]},
+ {id:'loc-2',name:'Локация 2',x:1450,y:750,size:SIZE,background:null,transitions:makeTransitions('loc-2'),frame:[]}
 ]
 const initialConnectors:Connector[]=[{id:'conn-1',from:{locationId:'loc-1',transitionId:'loc-1-t-25'},to:{locationId:'loc-2',transitionId:'loc-2-t-34'},color:'#fff',arrows:'none',fromSide:'right',toSide:'left'}]
 
@@ -124,13 +125,13 @@ export function App(){
  const [mode,setMode]=useState<'viewer'|'editor'>('editor'),[locations,setLocations]=useState(initialLocations),[connectors,setConnectors]=useState(initialConnectors)
  const [selected,setSelected]=useState<string|null>(null),[selectedConnector,setSelectedConnector]=useState<string|null>(null),[hovered,setHovered]=useState<Endpoint|null>(null),[hoverLoc,setHoverLoc]=useState<string|null>(null),[start,setStart]=useState<Endpoint|null>(null)
  const [zoom,setZoom]=useState(1),[snap,setSnap]=useState(true),[connectionMode,setConnectionMode]=useState(false),[deleteMode,setDeleteMode]=useState(false),[oneWay,setOneWay]=useState(false),[pan,setPan]=useState(false)
- const [endPreview,setEndPreview]=useState<{id:string;which:'from'|'to';endpoint:Endpoint;side:Side;point:Point}|null>(null)
+ const [frameMenu,setFrameMenu]=useState(false),[endPreview,setEndPreview]=useState<{id:string;which:'from'|'to';endpoint:Endpoint;side:Side;point:Point}|null>(null)
  type MidDrag={id:string;index:number;points:Point[]}
  const drag=useRef<any>(null),panDrag=useRef<any>(null),midDrag=useRef<MidDrag|null>(null),endDrag=useRef<any>(null),shellRef=useRef<HTMLElement|null>(null)
  const map=useMemo(()=>new Map(locations.map(l=>[l.id,l])),[locations])
  const connected=useMemo(()=>{const s=new Set<string>();connectors.forEach(c=>{s.add(`${c.from.locationId}:${c.from.transitionId}`);if(!c.oneWay)s.add(`${c.to.locationId}:${c.to.transitionId}`)});return s},[connectors])
  const orange=useMemo(()=>new Set(connectors.filter(c=>c.oneWay).map(c=>`${c.from.locationId}:${c.from.transitionId}`)),[connectors])
- function addLocation(){const id=`loc-${Date.now()}`;setLocations(v=>[...v,{id,name:`Локация ${v.length+1}`,x:900+v.length*100,y:1100+v.length*100,size:SIZE,background:null,transitions:makeTransitions(id)}]);setSelected(id)}
+ function addLocation(){const id=`loc-${Date.now()}`;setLocations(v=>[...v,{id,name:`Локация ${v.length+1}`,x:900+v.length*100,y:1100+v.length*100,size:SIZE,background:null,transitions:makeTransitions(id),frame:[]}]);setSelected(id)}
  function startDrag(e:ReactPointerEvent<SVGElement>,l:Location,allowConnection=false){if(endDrag.current||midDrag.current)return;if(mode!=='editor'||(!allowConnection&&connectionMode)||pan)return;e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);drag.current={id:l.id,sx:e.clientX,sy:e.clientY,x:l.x,y:l.y,lastX:l.x,lastY:l.y,size:l.size};setSelected(l.id)}
  function moveLocation(e:ReactPointerEvent<SVGElement>){
   if(endDrag.current||midDrag.current){drag.current=null;return;}
