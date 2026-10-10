@@ -69,3 +69,11 @@ button { color: inherit; border: 0; cursor: pointer; }
 .remove-bg:hover { background: #343b47; }
 .inspector-note { margin-top: 12px; color: #7f8998; font-size: 11px; line-height: 1.45; }
 .frame-row{display:flex;align-items:center;gap:6px;margin:6px 0}.frame-row input:not([type=color]){flex:1;min-width:0}.frame-row input[type=color]{width:34px;height:32px;padding:2px;background:#0f1116;border:1px solid #343b47;border-radius:5px}.frame-menu{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;background:#0f1116;border:1px solid #343b47;border-radius:7px}.frame-menu select{width:100%;padding:8px;background:#0f1116;color:#fff;border:1px solid #343b47;border-radius:6px}.inspector{max-height:calc(100vh - 90px);overflow:auto}.inspector .remove-bg{margin-top:5px}
+
+/* Location frames are open perimeter segments, not nested rectangles. */
+.frame-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0}
+.frame-row .frame-label{flex:1;min-width:0;color:#d9dee7;font-size:11px;overflow-wrap:anywhere}
+.frame-row .frame-label small{color:#8993a2}
+.frame-row input:not([type="color"]){flex:1;min-width:0;width:auto;padding:5px 7px;font-size:11px}
+.frame-row .frame-remove{flex:0 0 22px;width:22px;height:22px;margin:0;padding:0;border:1px solid #343b47;border-radius:5px;background:#242932;color:#c5ccd7;font-size:15px;line-height:1}
+.frame-row .frame-remove:hover{background:#3b252a;color:#fff;border-color:#75414a}
