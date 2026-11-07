@@ -10,8 +10,9 @@ button { color: inherit; border: 0; cursor: pointer; }
 .topbar { position: fixed; z-index: 10; inset: 0 0 auto 0; height: 54px; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #171a20; border-bottom: 1px solid #292e37; }
 .brand { font-size: 14px; font-weight: 750; letter-spacing: .08em; }
 .mode-switch { display: flex; gap: 3px; padding: 3px; background: #0f1116; border-radius: 8px; }
-.mode-switch button, .top-actions button, .toolbar button, .transition-tools button { background: transparent; border-radius: 6px; color: #9da5b3; }
-.mode-switch button { padding: 6px 12px; font-size: 13px; }
+.mode-switch a, .top-actions button, .toolbar button, .transition-tools button { background: transparent; border-radius: 6px; color: #9da5b3; }
+.mode-switch a { display:block; text-decoration:none; padding:6px 12px; font-size:13px; color:#9da5b3; border-radius:6px; }
+.mode-switch a.active { background:#303641; color:#fff; }
 .mode-switch button.active { background: #303641; color: #fff; }
 .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #aeb5c0; font-size: 12px; }
 .top-actions button { width: 28px; height: 28px; font-size: 18px; }
