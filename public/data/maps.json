@@ -1,0 +1,9 @@
+{
+  "maps": [
+    {
+      "id": "main",
+      "name": "Основная карта",
+      "file": "field.json"
+    }
+  ]
+}
