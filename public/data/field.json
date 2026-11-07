@@ -1,0 +1,10 @@
+{
+  "format": "karta-catwar-field",
+  "version": 2,
+  "locations": [],
+  "connectors": [],
+  "view": {
+    "zoom": 1,
+    "snap": true
+  }
+}
