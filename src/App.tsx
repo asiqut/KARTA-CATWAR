@@ -212,7 +212,7 @@ export function App(){
  function stopEnd(e?:ReactPointerEvent<any>){if(e&&e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);endDrag.current=null;setEndPreview(null)}
  function setBackgroundName(value:string){if(!selected)return;const name=value.trim().replace(/^\/+/, '').replace(/^backgrounds\//,'');setLocations(v=>v.map(l=>l.id===selected?{...l,background:name||null}:l))}
  function updateDesignator(index:number,patch:Partial<Designator>){if(!selected)return;setLocations(v=>v.map(l=>l.id===selected?{...l,designators:(l.designators??[]).map((d,i)=>i===index?{...d,...patch}:d)}:l))}
- function addDesignators(value:string){if(!selected)return;const names=value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/^\\/+/, '').replace(/^icons-designators\\//,''));setLocations(v=>v.map(l=>l.id===selected?{...l,designators:[...(l.designators??[]),...names.map(file=>({file,size:150,anchor:'top-right'}))]}:l))}
+ function addDesignators(value:string){if(!selected)return;const names=value.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/^\/+/, '').replace(/^icons-designators\//,''));setLocations(v=>v.map(l=>l.id===selected?{...l,designators:[...(l.designators??[]),...names.map(file=>({file,size:150,anchor:'top-right'}))]}:l))}
  function removeDesignator(index:number){if(!selected)return;setLocations(v=>v.map(l=>l.id===selected?{...l,designators:(l.designators??[]).filter((_,i)=>i!==index)}:l))}
  function removeBackground(){if(selected)setLocations(v=>v.map(l=>l.id===selected?{...l,background:null}:l))}
  function designatorPosition(l:Location,d:Designator):Point{
