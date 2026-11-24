@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 type Transition = { id:string; row:number; col:number }
 type Point = { x:number; y:number }
 type FrameItem = { kind:'color'|'preset'; value:string }
-type Designator = { file:string; size:number; anchor:string };\ntype Location = { id:string; name:string; x:number; y:number; size:number; background:string|null; designators?:Designator[]; transitions:Transition[]; frame:FrameItem[] }
+type Designator = { file:string; size:number; anchor:string };
+type Location = { id:string; name:string; x:number; y:number; size:number; background:string|null; designators?:Designator[]; transitions:Transition[]; frame:FrameItem[] }
 type Endpoint = { locationId:string; transitionId:string }
 type Side = 'left'|'right'|'top'|'bottom'|'top-left'|'top-right'|'bottom-left'|'bottom-right'
 type Connector = { id:string; from:Endpoint; to:Endpoint; color:string; arrows:'none'|'start'|'end'|'both'; oneWay?:boolean; bends?:Point[]; points?:Point[]; fromPoint?:Point; toPoint?:Point; fromSide?:Side; toSide?:Side }
