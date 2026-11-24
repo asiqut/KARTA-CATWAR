@@ -94,3 +94,8 @@ button { color: inherit; border: 0; cursor: pointer; }
 
 /* Keep the canvas flush with the viewport; remove the empty scroll tail. */
 .canvas-shell { top: 54px; bottom: 0; height: auto; padding-top: 0; }
+
+
+/* Keep the remove control identical in frame and designator rows. */
+.frame-remove{color:#c5ccd7;background:#242932;border:1px solid #343b47;border-radius:5px;flex:0 0 22px;width:22px;height:22px;margin:0;padding:0;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+.frame-remove:hover{background:#3b252a;color:#fff;border-color:#75414a}
