@@ -106,3 +106,15 @@ button { color: inherit; border: 0; cursor: pointer; }
 .designator-head .frame-remove{display:flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;margin:0;padding:0;font-family:Arial,sans-serif;font-size:15px;line-height:1}
 .topbar .brand{font-size:13px;letter-spacing:.06em;font-weight:700}
 .canvas-shell{overscroll-behavior:contain}
+
+/* Keep SVG controls compact inside the inspector. */
+.anchor-grid button{display:flex;align-items:center;justify-content:center;padding:0;min-width:0;min-height:0;overflow:hidden}
+.anchor-grid button img{display:block;width:16px;height:16px;max-width:16px;max-height:16px;object-fit:contain;flex:0 0 16px}
+.designator-head .frame-remove{font-family:Arial,sans-serif;font-size:0;position:relative}
+.frame-remove.icon-minus::before{content:"";display:block;width:10px;height:1.5px;background:#c5ccd7;border-radius:1px}
+.frame-remove.icon-minus:hover::before{background:#fff}
+.designator-head>img{width:30px;height:30px;max-width:30px;max-height:30px;flex:0 0 30px}
+.canvas-shell{cursor:default;overscroll-behavior: none;touch-action:pan-x pan-y}
+.canvas-shell.pan-mode{cursor:grab}
+.canvas-shell:active{scrollbar-width:none}
+.brand{white-space:nowrap}
